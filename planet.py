@@ -11,7 +11,7 @@ class Planet:
 		self.color = color
 
 		self.orbit = []
-		self.division_cooldown = 5
+		self.division_cooldown = 30
 
 		self.x_vel = 0
 		self.y_vel = 0

@@ -6,14 +6,22 @@ from planet import Planet
 random.seed(765)
 pygame.init()
 WIDTH, HEIGHT = 2000, 1200
-SCALE = 15 / Planet.AU
-RADIUS_SCALE = 10
-TIMESTEP = 60 * 10
+SCALE = 0.1 / Planet.AU
+RADIUS_SCALE = 500
+TIMESTEP = 3600 * 24 * 500
 MAX_ORBIT = 1000
 BOUNCING = False
 DIVIDING = False
+SMART = False
+DESTROYING = True
 
 surface = pygame.display.set_mode((WIDTH, HEIGHT))
+
+
+def smart_destroying(planet, destroyed_planet):
+	if planet.mass / destroyed_planet.mass >= 100:
+		return absorb_planet(planet, destroyed_planet)
+	return divide_planet(planet, destroyed_planet)
 
 
 def absorb_planet(planet, absorbed_planet):
@@ -29,33 +37,33 @@ def absorb_planet(planet, absorbed_planet):
 
 def divide_planet(planet, divided_planet):
 	if divided_planet.division_cooldown > 0:
-		return
+		return False
 
 	new_planet1 = Planet(color=divided_planet.color)
 	new_planet2 = Planet(color=divided_planet.color)
 
-	new_planet1.x = divided_planet.x
+	new_planet1.x = 1.0001 * divided_planet.x
 	new_planet1.y = divided_planet.y
 	new_planet2.x = divided_planet.x
-	new_planet2.y = divided_planet.y
+	new_planet2.y = 1.0001 * divided_planet.y
 
-	new_planet1.mass = divided_planet.mass / 8
-	new_planet2.mass = divided_planet.mass / 8
+	new_planet1.mass = divided_planet.mass / 4
+	new_planet2.mass = divided_planet.mass / 4
 
-	new_planet1.radius = divided_planet.radius / 2
-	new_planet2.radius = divided_planet.radius / 2
+	new_planet1.radius = 2 * divided_planet.radius / 3
+	new_planet2.radius = 2 * divided_planet.radius / 3
 
-	new_planet1.x_vel = -divided_planet.x_vel / 1000
-	new_planet1.y_vel = -divided_planet.y_vel / 1000
+	new_planet1.x_vel = -divided_planet.x_vel / 4
+	new_planet1.y_vel = divided_planet.y_vel / 4
 
-	print(new_planet1.x_vel, new_planet1.y_vel)
-
-	new_planet2.x_vel = 50 * -divided_planet.x_vel
-	new_planet2.y_vel = 50 * -divided_planet.y_vel
+	new_planet2.x_vel = divided_planet.x_vel / 4
+	new_planet2.y_vel = -divided_planet.y_vel / 4
 
 	planets.remove(divided_planet)
 	planets.append(new_planet1)
-	#planets.append(new_planet2)
+	planets.append(new_planet2)
+
+	return True
 
 
 def get_random_color():
@@ -82,17 +90,20 @@ def update_planet(planet):
 		if pl == planet:
 			continue
 
-		if check_in(pl, planet):
-			if not DIVIDING:
-				func = absorb_planet
-			else:
+		if DESTROYING and check_in(pl, planet):
+			if SMART:
+				func = smart_destroying
+			elif DIVIDING:
 				func = divide_planet
+			else:
+				func = absorb_planet
 
 			if planet.mass > pl.mass:
-				func(planet, pl)
+				if func(planet, pl):
+					return
 			else:
-				func(pl, planet)
-				return
+				if func(pl, planet):
+					return
 
 		force = get_force(planet, pl)
 		fx += force[0]
@@ -136,21 +147,17 @@ def get_force(planet1, planet2):
 
 def init_planets():
 	_planets = [
-		Planet(0, 0, 0.2, 1e13, (255, 255, 0)),
-		Planet(-4, 7, 0.075, 1, (get_random_color())),
-		Planet(0, 18, 0.1, 1, (get_random_color())),
-		Planet(0, 40, 0.1, 1e4, (get_random_color())),
-		Planet(-35, 30, 0.05, 1, (get_random_color())),
-		Planet(35, -30, 0.05, 1, (get_random_color())),
-		Planet(6, 38, 0.05, 1, (get_random_color()))
+		#Planet(1000, 1000, 0.3, 1e9, (255, 255, 0)),
+		Planet(1300, 1400, 0.2, 1e1, (255, 60, 60)),
+		Planet(-1000, -1000, 1, 1e10, (get_random_color())),
+		Planet(-1000, -240, 0.2, 1e1, (get_random_color()))
 	]
 
-	_planets[1].x_vel = 60 * 1000 * 1000
-	_planets[2].x_vel = 40 * 1000 * 1000
-	_planets[3].x_vel = 25 * 1000 * 1000
-	_planets[4].x_vel = 15 * 1000 * 1000
-	_planets[5].x_vel = -15 * 1000 * 1000
-	_planets[6].y_vel = 25 * 1000 * 1000
+	#_planets[1].y_vel = 10 * 1000
+
+	_planets[0].x_vel = -80 * 1000
+	_planets[2].x_vel = -185 * 1000
+	#_planets[1].x_vel = -230 * 1000
 
 	return _planets
 
